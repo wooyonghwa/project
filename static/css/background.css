@@ -1,0 +1,111 @@
+.navbar-nav{
+    margin:auto;
+}
+.nav-item{
+    margin:10px;
+}
+
+.d-block{
+    height: 300px;
+}
+
+.ex_img{
+    width: 100%;
+    height:400px;
+}
+
+#today_time{
+    float: left;
+    margin-top:20px;
+    margin-left: 30px;
+    width:33%;
+}
+.bs-docs-featurette-title{
+    text-align: center;
+}
+.table{
+    margin-top:30px;
+}
+.meal_time{
+    border-left: solid 1px #dee2e6;
+}
+#meal_object{
+    margin-top: 20px;
+    float: left;
+    width: 33%;
+}
+#progress-group{
+    padding:30px;
+}
+.progress{
+    margin-bottom:20px;
+}
+.progress-bar{
+    background-color: black;
+}
+#today_ex_list{
+    float: left;
+    width: 31%;
+    margin-top: 20px;
+}
+.img-fluid{
+    width: 200px;
+    padding:20px;
+}
+.profile_img{
+    padding:18px;
+    height:auto;
+    width:100%;
+}
+.profile_mesg{
+    text-align: center;
+}
+#mypage_image_area{
+    float: left;
+    width: 33%;
+}
+#today_meal{
+    margin-top:20px;
+    float: left;
+    width: 65%;
+}
+hr{
+    border-top: 2px solid rgba(0,0,0,1);
+}
+#today_meal_reg{
+    text-align:center;
+}
+#today_ex_reg{
+    margin-top:50px;
+    margin-left:50px;
+    float: left;
+    
+}
+.check_exer{
+    float:left;
+    margin-top:20px;
+}
+.exer_list{
+    float: left;
+}
+.form-control{
+    float:right;
+    width:10%;
+    margin-right: 10px;
+}
+.btn-group{
+    float:right;
+}
+.form-group{
+    text-align: left;
+}
+.popover {
+    display: inline-block;
+    z-index: 10000;
+}
+.time-hour{
+    margin-right:5px;
+}
+.input-group{
+    margin-bottom:20px;
+}
