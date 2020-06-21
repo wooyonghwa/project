@@ -30,8 +30,7 @@ def addMeals():
     # 등록할 식단이 있으면 등록
     if len(recipientNums) > 0:
         #현재 시간을 구해줌
-        epoch_now = time.time()
-        frmt_date = dt.datetime.utcfromtimestamp(epoch_now).strftime("%Y/%m/%d")
+        frmt_date = dt.datetime.now().strftime("%Y/%m/%d")
         #같은 시간 대에 들어간 음식을 찾기
         search_query = {"date":frmt_date, "hour":hour,"mins":mins}
         find_meal = getMeals(search_query)
@@ -120,7 +119,68 @@ def getFoods():
     if len(food_list) > 0:
         result = True
     return jsonify({'result':result,'food_list':food_list})
-                      
+
+
+#운동 추가 함수
+#시간(연,월,일,시간,분), 운동 종류
+@app.route('/exercise',methods=['POST'])
+def addExercise():
+    result = False
+    msg = "잠시 후에 다시 시도해주세요."
+    #데이터 받기
+    checkArray = request.form.getlist('checkArray[]')
+    #현재 시간을 구해줌
+    frmt_date = dt.datetime.now().strftime("%Y/%m/%d")
+    #같은 날에 들어간 운동 찾기
+    search_query = {"date":frmt_date}
+    find_Exercise = list(db.exercise.find(search_query))
+    doc={
+        "date":frmt_date
+        ,"checkArray":checkArray
+    }
+    if len(find_Exercise) > 0:
+        result = updateExercise(doc)
+        if result > 0:
+            msg = "오늘의 운동 리스트가 변경되었습니다."
+    else:
+        insert_result = db.exercise.insert_one(doc)
+        if insert_result.inserted_id is not None:
+            result = True
+            msg = "오늘의 운동이 등록되었습니다."
+    return jsonify({'result':result, 'msg': msg})
+
+#운동 변경 함수
+# 같은 날 등록한 운동을 새로운 운동 리스트로 업데이트
+# parameters : 시간(연,월,일,시간,분)
+# reurn value : 운동 업데이트 성공여부
+@app.route('/exercise/<doc>',methods=['PUT'])
+def updateExercise(doc):
+    result = False
+    if doc is not None:
+        #추후 구현
+        if doc == "changeexercise":
+            result = db.exercise.update_one({})
+        else:
+            myquery = { "date":doc['date']}
+            newvalues = { "$set": { "checkArray": doc['checkArray']} }
+            update_result = db.exercise.update_one(myquery,newvalues)
+            return update_result.modified_count
+    return jsonify({'result':result, 'msg': '오늘의 운동 리스트가 변경되었습니다.'})
+
+# 운동 조회 함수
+# parameters : nothing
+# return value : 오늘 등록한 운동 리스트
+@app.route('/exercise',methods=['GET'])
+def getExercise():
+    result = False
+    #현재 날짜를 구해줌
+    frmt_date = dt.datetime.now().strftime("%Y/%m/%d")
+    exercise_list = list(db.exercise.find({"date":frmt_date},{'_id':0}))
+    print(exercise_list)
+    if len(exercise_list) > 0:
+        result = True
+    return jsonify({'result':result,'exercise_list':exercise_list})                  
+
 
 if __name__ == '__main__':
     app.run('0.0.0.0', port=5000, debug=True)

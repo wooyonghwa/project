@@ -12,7 +12,7 @@
     <div id="personal_info_reg"></div>
     <!-- 오늘의 식단 입력 -->
     <div id="today_meal">
-        <h2>식단 등록(날짜 보여주기)</h2>
+        <h2>식단 등록</h2>
         <hr>
         <div id="today_meal_list">
             <table class="table">
@@ -111,6 +111,10 @@
         <img class="img-fluid z-depth-1" src="{{ url_for('static', filename='img/shoulder.png') }}" alt="어깨운동"
             data-toggle="modal" data-target="#modal1">
     </div>
+    <div class="reg-exerise">
+        <button type="button" id="reg-exer" onclick="addExer()" class="btn btn-success">운동등록</button>
+    </div>
+    
 </div>
 </div>
 {% endblock %}

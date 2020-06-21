@@ -24,6 +24,7 @@ function getFoods() {
         success: function (response) {
             if(response['result']){
                 let food_list = response['food_list'];
+                console.log(food_list);
                 $.each(food_list,function(index,food_list){
                     let result = makeFoods(index+1,food_list);
                     $('#modal-body-form').append(result);
@@ -112,7 +113,6 @@ function addMeals() {
 
     let recipientNums = new Array();
     let recipientNames = new Array();
-    console.log(recipientNumVal.length);
     
     /* 등록된 개수가 모두 0개 인지 체크하는 변수 */
     let zeroFlag = true;
@@ -231,4 +231,31 @@ function minusBtn(num) {
         val = val + 1;
     }
     $('#recipient-num'+num).val(val);
+}
+
+function addExer(){
+    let check1 = $('input:checkbox[id="gridCheck1"]').is(":checked");
+    let check2 = $('input:checkbox[id="gridCheck2"]').is(":checked");
+    let check3 = $('input:checkbox[id="gridCheck3"]').is(":checked");
+    let check4 = $('input:checkbox[id="gridCheck4"]').is(":checked");
+    let check5 = $('input:checkbox[id="gridCheck5"]').is(":checked");
+
+    if(check1 || check2 || check3 || check4 || check5){
+        var checkArray = new Array(check1,check2,check3,check4,check5);
+        $.ajax({
+            type: "POST",
+            url: "/exercise",
+            data: {"checkArray":checkArray
+                    },
+            success: function (response) {
+                if(response['result']){
+                    alert(response['msg']);
+                    location.reload();
+                }
+            },
+        }); 
+    }else{
+        alert('오늘 하실 운동을 선택 후 등록해주시기 바랍니다.');
+    }
+
 }

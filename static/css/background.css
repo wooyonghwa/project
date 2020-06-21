@@ -77,7 +77,7 @@ hr{
 }
 #today_ex_reg{
     margin-top:50px;
-    margin-left:50px;
+    margin-left:20px;
     float: left;
     
 }
@@ -108,4 +108,12 @@ hr{
 }
 .input-group{
     margin-bottom:20px;
+}
+.reg-exerise{
+    text-align:center;
+    margin-top:20px;
+}
+.reg-exer-btn{
+    text-align: center;
+    margin-top:100px;
 }
