@@ -3,10 +3,6 @@ $(document).ready(function (e) {
     getMainMeals();
     getMainExercises();
     setTimeout(timeout, 300);
-
-    /*단백질 목표량 */
-    makeObjective();
-    
 });
 
 function timeout(){ 
@@ -21,28 +17,63 @@ function timeout(){
     }
     /* 식단 달성률 작성을 위한 식단 전체 개수 cnt */
     let totalLength = $('#main_meal_list tr').length;
+    if(totalLength == 0){
+        $('#meal-object').hide();
+    }else{
+        let applyVal = ((checkedCnt/totalLength) * 100).toFixed(0);
+        $('#meal-object').text(applyVal+"%");
+        $('#meal-object').css('width',applyVal+"%");
+        $('#meal-object').attr('aria-valuenow',applyVal);
+    }
     
-    let applyVal = ((checkedCnt/totalLength) * 100).toFixed(0);
-    $('#meal-object').text(applyVal+"%");
-    $('#meal-object').css('width',applyVal+"%");
-    $('#meal-object').attr('aria-valuenow',applyVal);
+    /*단백질 목표량 */
     makeObjective();
 }
 function makeObjective(){
-    // let checkBoxKey = $('input[id^=mainCheck]');
-    // checkBoxKey.each(function(index,item){
-    //     if($(item).is(':checked')){
-    //         console.log($('td[id=mainCheck'+(index+1)+']'));
-    //     }
-    // })
-
+    $.ajax({
+        type: "GET",
+        url: "/foods",
+        data: {},
+        success: function (response) {
+            if(response['result']){
+                let foodInfoList = response['food_list'];
+                let foodLists = $('td[id^=mainCheck]');
+                //오늘 먹어야 할 단백질 양
+                let total_protein_amount = 0;
+                //이미 먹은 단백질 양
+                let eaten_protein_amount = 0;
+                foodLists.each(function(index,item){
+                    let foodList = $(item).text().split(',');
+                    let checkBoxList = $('input[id=mainCheck'+(index+1)+']');
+                    for(let i=0;i<foodList.length;i++){
+                        let list = foodList[i].trim().split(' ');
+                        for(let j=0;j<foodInfoList.length;j++){
+                            if(foodInfoList[j].name == list[0]){
+                                total_protein_amount += (foodInfoList[j].protein * list[1].split('')[0]);
+                                if(checkBoxList.is(':checked')){
+                                    eaten_protein_amount += (foodInfoList[j].protein * list[1].split('')[0]);
+                                }
+                            }
+                        }
+                    }
+                });
+                //console.log('total amount : '+total_protein_amount+' '+'eaten amount : '+eaten_protein_amount); 
+                let applyVal = ((eaten_protein_amount/total_protein_amount) * 100).toFixed(0);
+                $('#today_total_protein').text(total_protein_amount+'g');
+                $('#protein-object').text(eaten_protein_amount+"g");
+                $('#protein-object').css('width',applyVal+"%");
+                $('#protein-object').attr('aria-valuenow',applyVal);
+                
+            }
+        }
+    });
 }
 
 /*음식정보 가져오는 함수 */
 function getMainMeals() {
     $.ajax({
         type: "GET",
-        url: "/meals",
+        url: "/meals/list",
         data: {},
         success: function (response) {
             if (response['result']) {
@@ -59,7 +90,12 @@ function getMainMeals() {
                     let result = makeMainMeals(index + 1, make_recipient, meal_list);
                     $('#main_meal_list').append(result);
                 });
-                // 없는 경우 등록 페이지 이동 버튼
+            }else{
+                $('#time_table').hide();
+                $('#today_time').append(`<div class='reg-meal-btn'>
+                <button type="button" onclick="location.href='/mypage'" class="btn btn-secondary">식단 등록하러 가기</button>
+                </div>`)
+                
             }
         }
     });
@@ -104,10 +140,10 @@ function getMainExercises() {
 function mainMealCheck(obj) {
     let storage = localStorage;
     if (obj.checked) {
-        /* check box가 체크된 경우 localStorage에 저장함 */
+        /* check box가 체크된 경우 localStorage에 저장함 */   
         storage.setItem($(obj).attr('id'), true);
     } else {
         storage.removeItem($(obj).attr('id'));
     }
-    location.reload();
+    timeout();
 }

@@ -29,16 +29,15 @@
         <div id="meal_object">
             <h2 class="bs-docs-featurette-title">식단 목표</h2>
             <div id="progress-group">
-                <h3>오늘 먹어야 할 단백질 양</h3>
+                <h3>오늘 먹어야 할 단백질 양(총 : <span id="today_total_protein"></span>)</h3>
                 <div class="progress">
-                    <div class="progress-bar" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0"
+                    <div class="progress-bar" id="protein-object" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0"
                         aria-valuemax="100">
-                        80g
                     </div>
                 </div>
                 <h3>식단 달성률</h3>
                 <div class="progress">
-                    <div class="progress-bar" id="meal-object" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0"
+                    <div class="progress-bar" id="meal-object" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0"
                         aria-valuemax="100"></div>
                 </div>
             </div>

@@ -1,15 +1,27 @@
 $(document).ready(function (e) {
-    $('#reg-meals').click(function(e){   
+    $('#reg-meals').click(function (e) {
+        $('#add-meal-btn').show();
+        $('#chg-meal-btn').hide();
         let mealListCnt = $('#meal_list')[0].childElementCount;
-        if(mealListCnt >= 10){
+        if (mealListCnt >= 10) {
             alert('식단은 최대 10개까지 등록 가능합니다.');
             location.reload();
             return;
         }
     });
 
-    $('#reg-meals').one('click',function(e){   
+    $('#reg-meals').one('click', function (e) {
         getFoods();
+    });
+    $('#ModalReg').on('hide.bs.modal', function () {
+        if ($('#reg-time-hour').attr('readonly') == 'readonly') {
+            $('#reg-time-hour').val('00');
+            $('#reg-time-hour').attr('readonly', false);
+        }
+        if ($('#reg-time-mins').attr('readonly') == 'readonly') {
+            $('#reg-time-mins').val('00');
+            $('#reg-time-mins').attr('readonly', false);
+        }
     });
     //식단정보 가져오는 함수
     getMeals();
@@ -17,17 +29,19 @@ $(document).ready(function (e) {
 
 /*음식정보 가져오는 함수 */
 function getFoods() {
+    $('#foods-group').empty();
+    $('#foods-chg-group').empty();
     $.ajax({
         type: "GET",
         url: "/foods",
         data: {},
         success: function (response) {
-            if(response['result']){
+            if (response['result']) {
                 let food_list = response['food_list'];
-                console.log(food_list);
-                $.each(food_list,function(index,food_list){
-                    let result = makeFoods(index+1,food_list);
-                    $('#modal-body-form').append(result);
+                $.each(food_list, function (index, food_list) {
+                    let result = makeFoods(index + 1, food_list);
+                    $('#foods-group').append(result);
+                    $('#foods-chg-group').append(result);
                 });
             }
         }
@@ -35,16 +49,19 @@ function getFoods() {
 
 }
 
-function delFood(meal_date,meal_hour,meal_mins){
-    if(confirm('정말로 삭제 하시겠습니까?')){
+function delFood(meal_date, meal_hour, meal_mins) {
+    if (confirm('정말로 삭제 하시겠습니까?')) {
         $.ajax({
             type: "DELETE",
             url: "/meals",
-            data: {"date":meal_date,
-                   "hour":meal_hour,
-                   "mins":meal_mins},
+            data: {
+                "date": meal_date,
+                "hour": meal_hour,
+                "mins": meal_mins
+            },
             success: function (response) {
                 alert(response['msg']);
+                localStorage.clear();
                 location.reload();
             },
         });
@@ -54,42 +71,223 @@ function delFood(meal_date,meal_hour,meal_mins){
 function getMeals() {
     $.ajax({
         type: "GET",
-        url: "/meals",
+        url: "/meals/list",
         data: {},
         success: function (response) {
-            if(response['result']){
+            if (response['result']) {
                 let meal_list = response['meal_list'];
-                $.each(meal_list,function(index,meal_list){
+                $.each(meal_list, function (index, meal_list) {
                     let recipientNums = meal_list.recipientNums;
-                    let make_recipient="";
-                    for(let i=0;i<recipientNums.length;i++){
-                        make_recipient += (meal_list.recipientNames[i] + " " + recipientNums[i]+"개");
-                        if(i != recipientNums.length-1){
-                            make_recipient+=", ";
+                    let make_recipient = "";
+                    for (let i = 0; i < recipientNums.length; i++) {
+                        make_recipient += (meal_list.recipientNames[i] + " " + recipientNums[i] + "개");
+                        if (i != recipientNums.length - 1) {
+                            make_recipient += ", ";
                         }
                     }
-                    let result = makeMeals(index+1,make_recipient,meal_list);
+                    let result = makeMeals(index + 1, make_recipient, meal_list);
                     $('#meal_list').append(result);
+                });
+            } else {
+                $.ajax({
+                    type: "GET",
+                    url: "/meals/date",
+                    data: {},
+                    success: function (response) {
+                        if (response['result']) {
+                            let date_list = response['date_list'];
+
+                            let complete_sentence = "";
+                            for (let i = 0; i < date_list.length; i++) {
+                                let date_sentence = `<option>${date_list[i]}</option>`;
+                                complete_sentence += date_sentence;
+                            }
+                            $('#date_select').html(`                               
+                            <select onchange="changeDate(this)" class="selectpicker" data-live-search="true">
+                                <option value="0">날짜를 선택해주세요.</option>
+                                ${complete_sentence}
+                            </select>
+                            <span class="desc"><-이전에 등록한 식단으로 등록하실 수 있습니다! 날짜를 조회해주세요</span>`);
+                        }
+                    }
                 });
             }
         }
     });
 }
-function makeMeals(i,make_recipient,meal_list){
-            let mealHtml =`
+function changeDate(obj) {
+    let date = obj.value;
+
+    if (date != 0) {
+        let dateArray = date.split('/');
+        $.ajax({
+            type: "GET",
+            url: "/meals/list/date",
+            data: {
+                "year": dateArray[0],
+                "month": dateArray[1],
+                "day": dateArray[2]
+            },
+            success: function (response) {
+                if (response['result']) {
+                    let meal_list = response['meal_list'];
+                    $('#meal_list').empty();
+                    $.each(meal_list, function (index, meal_list) {
+                        let recipientNums = meal_list.recipientNums;
+                        let make_recipient = "";
+                        for (let i = 0; i < recipientNums.length; i++) {
+                            make_recipient += (meal_list.recipientNames[i] + " " + recipientNums[i] + "개");
+                            if (i != recipientNums.length - 1) {
+                                make_recipient += ", ";
+                            }
+                        }
+                        let result = makeMealsForChange(index + 1, make_recipient, meal_list);
+                        $('#meal_list').append(result);
+                    });
+                    $('#today_meal_reg *').remove();
+                    $('#today_meal_reg').append(`<button type="button" id="date-reg-meals" onclick=addMealsByDate('${date}') class="btn btn-warning">${date} 식단으로 등록하기</button>`);
+                } else {
+                    alert(response['msg']);
+                    return;
+                }
+            }
+        });
+    } else {
+        $('#meal_list').empty();
+        $('#today_meal_reg *').remove();
+        $('#today_meal_reg').append(`<button type="button" id="reg-meals" class="btn btn-success" data-toggle="modal"
+                data-target="#ModalReg">식단등록</button>`);
+    }
+}
+/* 조회 한 식단으로 오늘의 식단을 등록하는 함수 */
+function addMealsByDate(date) {
+    if (confirm(date + "의 식단으로 오늘 식단을 등록하시겠습니까?")) {
+        $.ajax({
+            type: "POST",
+            url: "/meals/add",
+            data: {
+                "date": date
+            },
+            success: function (response) {
+                if (response['result']) {
+                    alert(response['msg']);
+                    console.log(response);
+                    location.reload();
+                } else {
+                    alert(response['msg']);
+                    $('#meal_list').empty();
+                }
+            },
+        });
+    }
+}
+function makeMeals(i, make_recipient, meal_list) {
+    let mealHtml = `
                     <tr>
                         <th scope="row">
                             ${i}
                         </th>
                         <td>${make_recipient}</td>
                         <td class="meal_time">${meal_list.hour}:${meal_list.mins}
+                        <button type="button" style="margin-left:30px" class="btn btn-primary" id="reg-change-meals" data-toggle="modal" data-target="#ModalReg" onclick="changeFood('${meal_list.date}','${meal_list.hour}','${meal_list.mins}')">변경</button>
                         <button type="button" style="margin-left:30px" class="btn btn-danger" onclick="delFood('${meal_list.date}','${meal_list.hour}','${meal_list.mins}')">삭제</button></td>
                     </tr>`;
-        return mealHtml;
+    return mealHtml;
+}
+/* 음식 변경 함수 */
+function changeFood(date, hour, mins) {
+    getFoods();
+    $('#reg-time-hour').val(hour);
+    // $('#reg-time-hour').attr('readonly',true);
+    $('#reg-time-mins').val(mins);
+    // $('#reg-time-mins').attr('readonly',true);
+
+    $('#add-meal-btn').hide();
+    $('#chg-meal-btn').show();
+    $('#chg-date').val(date+':'+hour+':'+mins);
+    
+}
+function chgMeals(){
+
+    /* 음식 개수 */
+    let recipientNumVal = $('input[id^=recipient-num]');
+
+    /* 음식 이름 */
+    let recipientNameVal = $('label[id^=recipient-name]');
+
+    let recipientNums = new Array();
+    let recipientNames = new Array();
+
+    /* 등록된 개수가 모두 0개 인지 체크하는 변수 */
+    let zeroFlag = true;
+    for (let i = 0; i < recipientNumVal.length; i++) {
+        if (recipientNumVal[i].value == '') {
+            zeroFlag = true;
+            break;
+        }
+        //개수가 1개 이상일 경우에만 insert
+        if (recipientNumVal[i].value != '0') {
+            recipientNums.push(recipientNumVal[i].value);
+            recipientNames.push(recipientNameVal[i].outerText);
+            zeroFlag = false;
+        }
+    }
+    if (zeroFlag) {
+        alert('등록 할 식단의 개수를 입력해주세요');
+        return;
+    }
+
+    let hour = $('#reg-time-hour').val();
+    let mins = $('#reg-time-mins').val();
+    if (hour == '' || mins == '') {
+        alert('시간과 분을 정확히 입력해주세요');
+        $('#reg-time-hour').val('00');
+        $('#reg-time-mins').val('00');
+        return;
+    }
+    // 시간이 1자리로 들어오는 경우 
+    if (hour.length == 1) {
+        $('#reg-time-hour').val('0' + hour);
+        hour = $('#reg-time-hour').val();
+    }
+    // 분이 1자리로 들어오는 경우
+    if (mins.length == 1) {
+        $('#reg-time-mins').val('0' + mins);
+        mins = $('#reg-time-mins').val();
+    }
+    $.ajax({
+        type: "PUT",
+        url: "/meals/change",
+        data: {
+            "date":$('#chg-date').val(),
+            "recipientNums": recipientNums,
+            "recipientNames": recipientNames,
+            "hour": hour,
+            "mins": mins
+        },
+        success: function (response) {
+            if (response['result']) {
+                alert(response['msg']);
+                location.reload();
+            } else {
+                alert(response['msg']);
+            }
+        },
+    });
+}
+function makeMealsForChange(i, make_recipient, meal_list) {
+    let mealHtml = `
+                    <tr>
+                        <th scope="row">
+                            ${i}
+                        </th>
+                        <td>${make_recipient}</td>
+                        <td class="meal_time">${meal_list.hour}:${meal_list.mins}
+                    </tr>`;
+    return mealHtml;
 }
 
-
-function makeFoods(i,food){
+function makeFoods(i, food) {
     let foodsHtml = `<div class="form-group">
                     <label for="recipient-name" id="recipient-name${i}" class="col-form-label">${food.name}</label>
                     <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
@@ -107,75 +305,66 @@ function addMeals() {
 
     /* 음식 개수 */
     let recipientNumVal = $('input[id^=recipient-num]');
-    
+
     /* 음식 이름 */
     let recipientNameVal = $('label[id^=recipient-name]');
 
     let recipientNums = new Array();
     let recipientNames = new Array();
-    
+
     /* 등록된 개수가 모두 0개 인지 체크하는 변수 */
     let zeroFlag = true;
-    for(let i=0;i<recipientNumVal.length;i++){
-        if(recipientNumVal[i].value == ''){
+    for (let i = 0; i < recipientNumVal.length; i++) {
+        if (recipientNumVal[i].value == '') {
             zeroFlag = true;
             break;
         }
         //개수가 1개 이상일 경우에만 insert
-        if(recipientNumVal[i].value != '0'){
+        if (recipientNumVal[i].value != '0') {
             recipientNums.push(recipientNumVal[i].value);
             recipientNames.push(recipientNameVal[i].outerText);
             zeroFlag = false;
         }
     }
-    if(zeroFlag){
+    if (zeroFlag) {
         alert('등록 할 식단의 개수를 입력해주세요');
         return;
     }
 
     let hour = $('#reg-time-hour').val();
     let mins = $('#reg-time-mins').val();
-    if(hour == '' || mins ==''){
+    if (hour == '' || mins == '') {
         alert('시간과 분을 정확히 입력해주세요');
         $('#reg-time-hour').val('00');
         $('#reg-time-mins').val('00');
         return;
     }
     // 시간이 1자리로 들어오는 경우 
-    if(hour.length == 1){
-        $('#reg-time-hour').val('0'+hour);
+    if (hour.length == 1) {
+        $('#reg-time-hour').val('0' + hour);
         hour = $('#reg-time-hour').val();
     }
     // 분이 1자리로 들어오는 경우
-    if(mins.length == 1){
-        $('#reg-time-mins').val('0'+mins);
+    if (mins.length == 1) {
+        $('#reg-time-mins').val('0' + mins);
         mins = $('#reg-time-mins').val();
     }
     $.ajax({
         type: "POST",
         url: "/meals",
-        data: {"recipientNums":recipientNums,
-               "recipientNames":recipientNames,
-               "hour":hour,
-                "mins":mins
-                },
+        data: {
+            "recipientNums": recipientNums,
+            "recipientNames": recipientNames,
+            "hour": hour,
+            "mins": mins
+        },
         success: function (response) {
-            if(response['result']){
+            if (response['result']) {
                 alert(response['msg']);
                 location.reload();
+            } else {
+                alert(response['msg']);
             }
-            // 에러 처리도 해주기
-        },
-    }); 
-}
-// 추후 구현
-function updateMeals(){
-    $.ajax({
-        type: "PUT",
-        url: "/meals/change",
-        data: {},
-        success: function (response) {
-            console.log(response);
         },
     });
 }
@@ -210,51 +399,54 @@ function timeMinsCheck(obj) {
 }
 
 function plusBtn(num) {
-    let val = $('#recipient-num'+num).val();
-    
+    let val = $('#recipient-num' + num).val();
+
     val = Number(val) + 1;
-    
-    if(val > 99){
+
+    if (val > 99) {
         alert('1~99 사이의 숫자를 입력해주세요.');
         val = val - 1;
     }
-    $('#recipient-num'+num).val(val);
+    $('#recipient-num' + num).val(val);
 }
 
 function minusBtn(num) {
-    let val = $('#recipient-num'+num).val();
-    
+    let val = $('#recipient-num' + num).val();
+
     val = Number(val) - 1;
-    
-    if(val < 0){
+
+    if (val < 0) {
         alert('1~99 사이의 숫자를 입력해주세요.');
         val = val + 1;
     }
-    $('#recipient-num'+num).val(val);
+    $('#recipient-num' + num).val(val);
 }
 
-function addExer(){
+function addExer() {
     let check1 = $('input:checkbox[id="gridCheck1"]').is(":checked");
     let check2 = $('input:checkbox[id="gridCheck2"]').is(":checked");
     let check3 = $('input:checkbox[id="gridCheck3"]').is(":checked");
     let check4 = $('input:checkbox[id="gridCheck4"]').is(":checked");
     let check5 = $('input:checkbox[id="gridCheck5"]').is(":checked");
 
-    if(check1 || check2 || check3 || check4 || check5){
-        var checkArray = new Array(check1,check2,check3,check4,check5);
+    if (check1 || check2 || check3 || check4 || check5) {
+        var checkArray = new Array(check1, check2, check3, check4, check5);
         $.ajax({
             type: "POST",
             url: "/exercise",
-            data: {"checkArray":checkArray
-                    },
+            data: {
+                "checkArray": checkArray
+            },
             success: function (response) {
-                if(response['result']){
+                if (response['result']) {
                     alert(response['msg']);
                     location.reload();
+                } else {
+                    alert('이미 같은 운동이 등록되었습니다.');
                 }
             },
-        }); 
-    }else{
+        });
+    } else {
         alert('오늘 하실 운동을 선택 후 등록해주시기 바랍니다.');
     }
 
