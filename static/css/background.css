@@ -124,3 +124,28 @@ hr{
 .desc{
     font-size: 12px;
 }
+.init-btn{
+    width: 100%;
+}
+.meal-area{
+    float: left;
+    width: 20%;
+    padding-top:30px;
+    padding-left: 55px;
+}
+.exer-area{
+    float: left;
+    width: 20%;
+    padding-top:30px;
+    padding-left: 55px;
+}
+.table-area{
+    float: left;
+    width: 70%;
+}
+#lookup_meal_reg{
+    text-align: center;
+}
+.wrap-content{
+    position: relative;
+}

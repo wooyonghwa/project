@@ -1,5 +1,7 @@
 $(document).ready(function (e) {
     $('#reg-meals').click(function (e) {
+        //시간과 숫자 초기화 함수
+        initNumbers();
         $('#add-meal-btn').show();
         $('#chg-meal-btn').hide();
         let mealListCnt = $('#meal_list')[0].childElementCount;
@@ -14,23 +16,28 @@ $(document).ready(function (e) {
         getFoods();
     });
     $('#ModalReg').on('hide.bs.modal', function () {
-        if ($('#reg-time-hour').attr('readonly') == 'readonly') {
-            $('#reg-time-hour').val('00');
-            $('#reg-time-hour').attr('readonly', false);
-        }
-        if ($('#reg-time-mins').attr('readonly') == 'readonly') {
-            $('#reg-time-mins').val('00');
-            $('#reg-time-mins').attr('readonly', false);
+        //해당 날짜로 다시 조회해서 그리는거 
+        if ($('#chg-date').val() != '') {
+            reDrawPastMeal($('#chg-date').val().split(':')[0]);
+            $('#chg-date').val('');
         }
     });
     //식단정보 가져오는 함수
     getMeals();
-});
 
+});
+function initNumbers() {
+    $('#reg-time-hour').val('00');
+    $('#reg-time-mins').val('00');
+    /* 음식 개수 */
+    let recipientNumVal = $('input[id^=recipient-num]');
+    for (let i = 0; i < recipientNumVal.length; i++) {
+        recipientNumVal[i].value = 0;
+    }
+}
 /*음식정보 가져오는 함수 */
 function getFoods() {
     $('#foods-group').empty();
-    $('#foods-chg-group').empty();
     $.ajax({
         type: "GET",
         url: "/foods",
@@ -41,13 +48,62 @@ function getFoods() {
                 $.each(food_list, function (index, food_list) {
                     let result = makeFoods(index + 1, food_list);
                     $('#foods-group').append(result);
-                    $('#foods-chg-group').append(result);
                 });
             }
         }
     });
-
 }
+
+
+/*음식정보 가져오는 함수 */
+function getFoodsForChange(date, hour, mins) {
+    let sendDate = date.split('/');
+
+    $('#foods-group').empty();
+    $.ajax({
+        type: "GET",
+        url: "/foods",
+        data: {},
+        success: function (response) {
+            if (response['result']) {
+                //음식정보 리스트
+                let food_list = response['food_list'];
+                let meal_list;
+                /* ajax 통신 - 해당 날짜에 맞는 식단정보 갖고오기 */
+                $.ajax({
+                    type: "GET",
+                    url: "/meals/list/time",
+                    data: {
+                        "year": sendDate[0],
+                        "month": sendDate[1],
+                        "day": sendDate[2],
+                        "hour": hour,
+                        "mins": mins
+                    },
+                    success: function (response) {
+                        if (response['result']) {
+                            meal_list = response['meal_list'];
+                            /* 식단 리스트와 음식 리스트 비교해서 같은게 있으면 value 업데이트 */
+                            $.each(food_list, function (outerIndex, food_list) {
+                                $.each(meal_list, function (innerIndex, meal_list) {
+                                    let result = makeFoods(outerIndex + 1, food_list);
+                                    $('#foods-group').append(result);
+                                    for (let i = 0; i < meal_list.recipientNames.length; i++) {
+                                        if (meal_list.recipientNames[i] == food_list.name) {
+                                            $('#recipient-num' + (outerIndex + 1)).val(meal_list.recipientNums[i]);
+                                        }
+                                    }
+                                });
+                            });
+
+                        }
+                    }
+                });
+            }
+        }
+    });
+}
+
 
 function delFood(meal_date, meal_hour, meal_mins) {
     if (confirm('정말로 삭제 하시겠습니까?')) {
@@ -62,7 +118,7 @@ function delFood(meal_date, meal_hour, meal_mins) {
             success: function (response) {
                 alert(response['msg']);
                 localStorage.clear();
-                location.reload();
+                reDrawPastMeal(meal_date);
             },
         });
     }
@@ -103,7 +159,7 @@ function getMeals() {
                                 complete_sentence += date_sentence;
                             }
                             $('#date_select').html(`                               
-                            <select onchange="changeDate(this)" class="selectpicker" data-live-search="true">
+                            <select onchange="changeDate(this)">
                                 <option value="0">날짜를 선택해주세요.</option>
                                 ${complete_sentence}
                             </select>
@@ -115,6 +171,8 @@ function getMeals() {
         }
     });
 }
+
+
 function changeDate(obj) {
     let date = obj.value;
 
@@ -196,18 +254,16 @@ function makeMeals(i, make_recipient, meal_list) {
 }
 /* 음식 변경 함수 */
 function changeFood(date, hour, mins) {
-    getFoods();
+    getFoodsForChange(date, hour, mins);
     $('#reg-time-hour').val(hour);
-    // $('#reg-time-hour').attr('readonly',true);
     $('#reg-time-mins').val(mins);
-    // $('#reg-time-mins').attr('readonly',true);
 
     $('#add-meal-btn').hide();
     $('#chg-meal-btn').show();
-    $('#chg-date').val(date+':'+hour+':'+mins);
-    
+    $('#chg-date').val(date + ":" + hour + ":" + mins);
+
 }
-function chgMeals(){
+function chgMeals() {
 
     /* 음식 개수 */
     let recipientNumVal = $('input[id^=recipient-num]');
@@ -224,6 +280,13 @@ function chgMeals(){
         if (recipientNumVal[i].value == '') {
             zeroFlag = true;
             break;
+        }
+        /* 05개 같은 숫자가 들어올때*/
+        if (recipientNumVal[i].value.length == 2) {
+            if (recipientNumVal[i].value.charAt(0) == '0') {
+                zeroFlag = true;
+                break;
+            }
         }
         //개수가 1개 이상일 경우에만 insert
         if (recipientNumVal[i].value != '0') {
@@ -259,7 +322,7 @@ function chgMeals(){
         type: "PUT",
         url: "/meals/change",
         data: {
-            "date":$('#chg-date').val(),
+            "date": $('#chg-date').val(),
             "recipientNums": recipientNums,
             "recipientNames": recipientNames,
             "hour": hour,
@@ -268,7 +331,7 @@ function chgMeals(){
         success: function (response) {
             if (response['result']) {
                 alert(response['msg']);
-                location.reload();
+                $('#ModalReg').modal('hide');
             } else {
                 alert(response['msg']);
             }
@@ -282,7 +345,7 @@ function makeMealsForChange(i, make_recipient, meal_list) {
                             ${i}
                         </th>
                         <td>${make_recipient}</td>
-                        <td class="meal_time">${meal_list.hour}:${meal_list.mins}
+                        <td class="meal_time">${meal_list.hour}:${meal_list.mins}</td>
                     </tr>`;
     return mealHtml;
 }
@@ -298,7 +361,6 @@ function makeFoods(i, food) {
                     </div>`;
     return foodsHtml;
 }
-
 
 
 function addMeals() {
@@ -319,6 +381,13 @@ function addMeals() {
             zeroFlag = true;
             break;
         }
+        /* 05개 같은 숫자가 들어올때*/
+        if (recipientNumVal[i].value.length == 2) {
+            if (recipientNumVal[i].value.charAt(0) == '0') {
+                zeroFlag = true;
+                break;
+            }
+        }
         //개수가 1개 이상일 경우에만 insert
         if (recipientNumVal[i].value != '0') {
             recipientNums.push(recipientNumVal[i].value);
@@ -327,7 +396,7 @@ function addMeals() {
         }
     }
     if (zeroFlag) {
-        alert('등록 할 식단의 개수를 입력해주세요');
+        alert('등록 할 식단의 개수를 정확히 입력해주세요');
         return;
     }
 
@@ -349,24 +418,48 @@ function addMeals() {
         $('#reg-time-mins').val('0' + mins);
         mins = $('#reg-time-mins').val();
     }
-    $.ajax({
-        type: "POST",
-        url: "/meals",
-        data: {
-            "recipientNums": recipientNums,
-            "recipientNames": recipientNames,
-            "hour": hour,
-            "mins": mins
-        },
-        success: function (response) {
-            if (response['result']) {
-                alert(response['msg']);
-                location.reload();
-            } else {
-                alert(response['msg']);
-            }
-        },
-    });
+    /* 날짜가 있는 경우 */
+    if ($('#meal_select').val() !== undefined) {
+        $.ajax({
+            type: "POST",
+            url: "/meals/seldate",
+            data: {
+                "date":$('#meal_select').val(),
+                "recipientNums": recipientNums,
+                "recipientNames": recipientNames,
+                "hour": hour,
+                "mins": mins
+            },
+            success: function (response) {
+                if (response['result']) {
+                    alert(response['msg']);
+                    $('#ModalReg').modal('hide');
+                    reDrawPastMeal($('#meal_select').val());
+                } else {
+                    alert(response['msg']);
+                }
+            },
+        });
+    } else {
+        $.ajax({
+            type: "POST",
+            url: "/meals",
+            data: {
+                "recipientNums": recipientNums,
+                "recipientNames": recipientNames,
+                "hour": hour,
+                "mins": mins
+            },
+            success: function (response) {
+                if (response['result']) {
+                    alert(response['msg']);
+                    location.reload();
+                } else {
+                    alert(response['msg']);
+                }
+            },
+        });
+    }
 }
 function timeHourCheck(obj) {
     let val = obj.value;

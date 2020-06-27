@@ -6,11 +6,118 @@
     <div id="desc_area">
         <div class="jumbotron jumbotron-fluid">
             <div class="container">
-              <h1 class="display-4">과거 식단/운동 정보</h1>
-              <p class="lead">운동정보와 식단에 대한 과거 이력을 볼 수 있는 페이지입니다.<br/>과거에 등록했던 정보를 확인하고 수정해보세요.</p>
+                <h1 class="display-4">과거 식단/운동 정보</h1>
+                <p class="lead">운동정보와 식단에 대한 과거 이력을 볼 수 있는 페이지입니다.<br />과거에 등록했던 정보를 확인하고 수정해보세요.</p>
             </div>
-          </div>
+        </div>
+        <div id="content">
+            <div class="wrap-content">
+                <div class="meal-area">
+                    <h2>식단정보</h2>
+                    <select id="meal_select" onchange="lookupPastMeal(this)">
+                        <option value="0">날짜를 선택해주세요.</option>
+                    </select>
+                </div>
+                <div class="table-area">
+                    <table class="table">
+                        <caption></caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">식단</th>
+                                <th class="meal_time" scope="col">시간</th>
+                            </tr>
+                        </thead>
+                        <tbody id="search_meal_list">
+
+                        </tbody>
+                    </table>
+                    <div id="lookup_meal_reg">
+                        <button type="button" style="display:none" id="lookup-reg-meals" class="btn btn-success"
+                            data-toggle="modal" data-target="#ModalReg">식단등록</button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="wrap-content">
+                <div class="exer-area">
+                    <h2>운동정보</h2>
+                    <select id="exer_select" onchange="lookupPastExer(this)">
+                        <option value="0">날짜를 선택해주세요.</option>
+                    </select>
+                </div>
+                <div class="table-area">
+                    <table class="table">
+                        <caption></caption>
+                        <thead>
+                            <tr>
+                                <th scope="col" rowspan="5">운동리스트</th>
+                                <th scope="col"></th>
+                                <th scope="col"></th>
+                                <th scope="col"></th>
+                                <th scope="col"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="search_exercise_list">
+                            <!-- 과거 운동 리스트 -->
+                            <tr>
+                                <td><img style="display:none" class="img-fluid" id="past-img-exercise1"
+                                 src="{{ url_for('static', filename='img/arm.png') }}" alt="팔운동" data-toggle="modal"
+                                 data-target="#modal1"></td>
+                                 <td><img style="display:none" class="img-fluid" id="past-img-exercise2"
+                                    src="{{ url_for('static', filename='img/back.png') }}" alt="등운동" data-toggle="modal"
+                                    data-target="#modal1"></td>
+                                 <td><img style="display:none" class="img-fluid" id="past-img-exercise3"
+                                    src="{{ url_for('static', filename='img/chest.png') }}" alt="가슴운동"
+                                    data-toggle="modal" data-target="#modal1"></td>
+                                 <td><img style="display:none" class="img-fluid" id="past-img-exercise4"
+                                    src="{{ url_for('static', filename='img/leg.png') }}" alt="다리운동" data-toggle="modal"
+                                    data-target="#modal1"></td>
+                                 <td><img style="display:none" class="img-fluid" id="past-img-exercise5"
+                                    src="{{ url_for('static', filename='img/shoulder.png') }}" alt="어깨운동"
+                                    data-toggle="modal" data-target="#modal1"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<div class="modal fade" id="ModalReg" tabindex="-1" role="dialog" aria-labelledby="ModalReg" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">음식정보 등록</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="modal-body-form">
+                    <input type="hidden" id="chg-date" name="chg-date">
+                    <div class="input-group">
+                        <input type="text" id="reg-time-hour" onkeyup="timeHourCheck(this)" class="form-control"
+                            value="00">
+                        <label for="reg-time-hour" class="time-hour col-form-label">시</label>
+                        <input type="text" id="reg-time-mins" onkeyup="timeMinsCheck(this)" class="form-control"
+                            value="00">
+                        <label for="reg-time-mins" class="time-mins col-form-label">분</label>
+                    </div>
+                    <div id="foods-group"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="init-btn">
+                    <button type="button" onclick="initNumbers()" class="btn btn-success">음식정보 초기화</button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+                <button type="button" id="add-meal-btn" class="btn btn-primary" onclick="addMeals()">식단 저장</button>
+                <button style="display: none" type="button" id="chg-meal-btn" class="btn btn-warning"
+                    onclick="chgMeals()">식단 변경</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

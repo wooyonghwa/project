@@ -94,6 +94,47 @@ def addMealsByDate():
 
     return jsonify({'result':result, 'msg': msg})
 
+#식단 추가 함수
+# 사용자가 입력한 날짜 (시간(연,월,일,시간,분)), 음식이름, 개수 저장
+@app.route('/meals/seldate',methods=['POST'])
+def addMealsByInputDate():
+    result = False
+    msg = "잠시 후에 다시 시도해주세요."
+    date = request.form['date']
+    recipientNums = request.form.getlist('recipientNums[]')
+    recipientNames = request.form.getlist('recipientNames[]')
+    hour = request.form['hour']
+    mins = request.form['mins']
+
+    # 등록할 식단이 있으면 등록
+    if len(recipientNums) > 0:
+        
+        #같은 시간 대에 들어간 음식을 찾기
+        search_query = {"date":date, "hour":hour,"mins":mins}
+        find_meal = getMeals(search_query)
+        
+        doc={
+                "date":date,
+                "hour":hour,
+                "mins":mins,
+                "recipientNums":recipientNums,
+                "recipientNames":recipientNames
+        }
+        
+        if len(find_meal) > 0:
+            #식단 업데이트
+            result = updateMeals(doc)
+            if result == True:
+                msg = "식단이 변경되었습니다."
+            else:
+                msg = "변경할 식단 내용이 같습니다."
+        else:
+            insert_result = db.meals.insert_one(doc)
+            if insert_result.inserted_id is not None:
+                result = True
+                msg = "식단이 등록되었습니다."
+    return jsonify({'result':result, 'msg': msg})
+
 
 
 #식단 변경 함수
@@ -119,13 +160,36 @@ def updateMeals(doc):
 def updateMealsInList():
     result = False
     msg = "잠시 후에 다시 시도해주세요."
+    updateCheck = False
     date = request.form['date'].split(':')
-    myquery = { "date":date[0], "hour":date[1],"mins":date[2] }
-    newvalues = { "$set": { "hour":request.form['hour'],"mins":request.form['mins'],"recipientNums": request.form.getlist('recipientNums[]'), "recipientNames":request.form.getlist('recipientNames[]')} }
-    update_result = db.meals.update_one(myquery,newvalues)
-    if update_result.modified_count > 0:
-        result = True
-        msg = '식단이 변경되었습니다.'
+    hour = request.form['hour']
+    mins = request.form['mins']
+
+    #시간은 그대로 두고 변경하려는 경우
+    if date[1] == hour and date[2] == mins:
+        updateCheck = True
+    else:
+        search_query = {"date":date[0], "hour":hour,"mins":mins}
+        find_meal = getMeals(search_query)
+
+        if len(find_meal) > 0:
+            result = False
+            msg = '이미 등록된 식단이 있습니다.'
+        else:
+            updateCheck = True
+
+    if updateCheck == True:
+        myquery = { "date":date[0], "hour":date[1],"mins":date[2] }
+        newvalues = { "$set": { "hour":hour,"mins":mins,"recipientNums": request.form.getlist('recipientNums[]'), "recipientNames":request.form.getlist('recipientNames[]')} }
+        update_result = db.meals.update_one(myquery,newvalues)
+        if update_result.modified_count > 0:
+            result = True
+            msg = '식단이 변경되었습니다.'
+        else:
+            result = False
+            msg = '변경한 내용이 이전에 등록한 식단과 같습니다.'
+
+
     return jsonify({'result':result, 'msg': msg})
 
 #식단 삭제 함수
@@ -184,6 +248,26 @@ def getMealsByDates():
 
     date=year+'/'+month+'/'+day
     search_query = {"date":date}
+    meal_list = list(db.meals.find(search_query,{'_id':0}).sort([("hour", 1), ("mins", 1)]))
+    if len(meal_list) > 0:
+        result = True
+    return jsonify({'result':result,'meal_list':meal_list})
+
+# 식단 조회 함수
+# parameters : 연/월/일 시간,분
+# return value : 해당 날짜에 맞는 식단들
+@app.route('/meals/list/time',methods=['GET'])
+def getMealsByDateAndTime():
+    result = False
+    #현재 시간을 구해줌
+    year = request.args.get('year')
+    month = request.args.get('month')
+    day = request.args.get('day')
+    hour = request.args.get('hour')
+    mins = request.args.get('mins')
+
+    date=year+'/'+month+'/'+day
+    search_query = {"date":date,"hour":hour,"mins":mins}
     meal_list = list(db.meals.find(search_query,{'_id':0}).sort([("hour", 1), ("mins", 1)]))
     if len(meal_list) > 0:
         result = True
@@ -277,10 +361,36 @@ def getExercise():
     #현재 날짜를 구해줌
     frmt_date = dt.datetime.now().strftime("%Y/%m/%d")
     exercise_list = list(db.exercise.find({"date":frmt_date},{'_id':0}))
-    print(exercise_list)    
     if len(exercise_list) > 0:
         result = True
     return jsonify({'result':result,'exercise_list':exercise_list})                  
+
+
+# 운동 조회 함수
+# parameters : 해당날짜(연/월/일)
+# return value : 오늘 등록한 운동 리스트
+@app.route('/exercise/list/date',methods=['GET'])
+def getExerciseByDate():
+    result = False
+    #해당 날짜
+    date = request.args.get('date')
+    exercise_list = list(db.exercise.find({"date":date},{'_id':0}))
+    
+    if len(exercise_list) > 0:
+        result = True
+    return jsonify({'result':result,'exercise_list':exercise_list})  
+
+# db에 등록된 운동 날짜 리턴 함수
+# parameters : nothing
+# return value : 해당 날짜에 운동이 등록되어있으면 해당 날짜가 리턴(array로), 2020/06/20, 2020/06/21에 운동이 1개라도 등록되어있으면 두 날짜를 리턴
+@app.route('/exercise/date',methods=['GET'])
+def getExerExistsByDates():
+    result = False
+    #현재 시간을 구해줌
+    exer_list = list(db.exercise.distinct('date'))
+    if len(exer_list) > 0:
+        result = True
+    return jsonify({'result':result,'exer_list':exer_list})                  
 
 #운동 삭제하기 추가
 # 삭제하기 버튼 클릭 시 해당 운동번호를 False값으로 만들어줌
@@ -299,12 +409,6 @@ def delExercise():
             result = True
     return jsonify({'result':result,'msg':msg})
 
-
-#음식정보 더하기, 빼기
-
-#식단 변경하기
-
-#식단 리스트 부여주기(내가 먹었던 식단들), # 운동 했던 리스트도
 
 
 
