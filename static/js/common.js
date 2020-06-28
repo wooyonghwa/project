@@ -1,5 +1,6 @@
 $(document).ready(function (e) {
     $('#reg-meals').click(function (e) {
+        getFoods();
         //시간과 숫자 초기화 함수
         initNumbers();
         $('#add-meal-btn').show();
@@ -12,9 +13,9 @@ $(document).ready(function (e) {
         }
     });
 
-    $('#reg-meals').one('click', function (e) {
-        getFoods();
-    });
+    // $('#reg-meals').one('click', function (e) {
+    //     getFoods();
+    // });
     $('#ModalReg').on('hide.bs.modal', function () {
         //해당 날짜로 다시 조회해서 그리는거 
         if ($('#chg-date').val() != '') {
@@ -213,9 +214,12 @@ function changeDate(obj) {
     } else {
         $('#meal_list').empty();
         $('#today_meal_reg *').remove();
-        $('#today_meal_reg').append(`<button type="button" id="reg-meals" class="btn btn-success" data-toggle="modal"
+        $('#today_meal_reg').append(`<button type="button" onclick="newAddMeal()" id="reg-meals" class="btn btn-success" data-toggle="modal"
                 data-target="#ModalReg">식단등록</button>`);
     }
+}
+function newAddMeal(){
+    getFoods();
 }
 /* 조회 한 식단으로 오늘의 식단을 등록하는 함수 */
 function addMealsByDate(date) {
